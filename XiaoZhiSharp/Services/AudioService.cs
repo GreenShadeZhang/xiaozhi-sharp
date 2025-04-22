@@ -1,23 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Threading;
+﻿using Concentus;
+using Concentus.Enums;
 using PortAudioSharp;
-using OpusSharp.Core;
-using XiaoZhiSharp.Utils;
 using System.Collections.Concurrent;
-using Newtonsoft.Json;
+using System.Runtime.InteropServices;
+using XiaoZhiSharp.Utils;
 
 namespace XiaoZhiSharp.Services
 {
     public class AudioService : IDisposable
     {
         // Opus 相关组件
-        private readonly OpusDecoder opusDecoder;   // 解码器
-        private readonly OpusEncoder opusEncoder;   // 编码器
+        private readonly IOpusDecoder opusDecoder;   // 解码器
+        private readonly IOpusEncoder opusEncoder;   // 编码器
         // 音频输出相关组件
         private readonly PortAudioSharp.Stream? _waveOut;
-        //private readonly Queue<float[]> _waveOutStream = new Queue<float[]>();
         private readonly ConcurrentQueue<float[]> _waveOutStream = new ConcurrentQueue<float[]>();
 
         // 音频输入相关组件
@@ -39,9 +35,13 @@ namespace XiaoZhiSharp.Services
         public AudioService()
         {
             // 初始化 Opus 解码器和编码器
-            opusDecoder = new OpusDecoder(SampleRate, Channels);
-            opusEncoder = new OpusEncoder(SampleRate, Channels, OpusPredefinedValues.OPUS_APPLICATION_VOIP);
-            //opusEncoder = new OpusEncoder(SampleRate, Channels,OpusSharp.Core.Enums.PreDefCtl.OPUS_APPLICATION_VOIP);
+            //opusDecoder = new OpusDecoder(SampleRate, Channels);
+            //opusEncoder = new OpusEncoder(SampleRate, Channels, OpusApplication.OPUS_APPLICATION_VOIP);
+
+
+            // 使用 OpusCodecFactory 替代已过时的构造函数
+            opusDecoder = OpusCodecFactory.CreateDecoder(SampleRate, Channels);
+            opusEncoder = OpusCodecFactory.CreateEncoder(SampleRate, Channels, OpusApplication.OPUS_APPLICATION_VOIP);
 
             // 初始化音频输出组件
             PortAudio.Initialize();
@@ -201,9 +201,12 @@ namespace XiaoZhiSharp.Services
                 byte[] frame = new byte[FrameSize * 2];
                 Array.Copy(buffer, i * FrameSize * 2, frame, 0, FrameSize * 2);
 
+                // 将字节数组转换为 short 数组 (Concentus 使用 short[] 而不是 byte[])
+                short[] pcmShorts = BytesToShorts(frame);
+
                 // 编码音频帧
                 byte[] opusBytes = new byte[960];
-                int encodedLength = opusEncoder.Encode(frame, FrameSize, opusBytes, opusBytes.Length);
+                int encodedLength = opusEncoder.Encode(pcmShorts, FrameSize, opusBytes, opusBytes.Length);
 
                 byte[] opusPacket = new byte[encodedLength];
                 Array.Copy(opusBytes, 0, opusPacket, 0, encodedLength);
@@ -226,7 +229,7 @@ namespace XiaoZhiSharp.Services
             {
                 // 解码 Opus 数据
                 short[] pcmData = new short[FrameSize * 10];
-                int decodedSamples = opusDecoder.Decode(opusData, opusData.Length, pcmData, FrameSize * 10, false);
+                int decodedSamples = opusDecoder.Decode(opusData, pcmData, FrameSize * 10, false);
 
                 if (decodedSamples > 0)
                 {
@@ -305,6 +308,20 @@ namespace XiaoZhiSharp.Services
             return _opusRecordPackets.TryDequeue(out opusData);
         }
 
+        // 工具方法：将字节数组转换为短整型数组(Concentus要求)
+        private static short[] BytesToShorts(byte[] byteArray)
+        {
+            int shortCount = byteArray.Length / 2;
+            short[] shortArray = new short[shortCount];
+
+            for (int i = 0; i < shortCount; i++)
+            {
+                shortArray[i] = (short)(byteArray[i * 2] | (byteArray[i * 2 + 1] << 8));
+            }
+
+            return shortArray;
+        }
+
         public static byte[] FloatArrayToByteArray(float[] floatArray)
         {
             // 初始化一个与 float 数组长度两倍的 byte 数组，因为每个 short 占 2 个字节
@@ -340,8 +357,7 @@ namespace XiaoZhiSharp.Services
         {
             IsPlaying = false;
             IsRecording = false;
-            opusDecoder?.Dispose();
-            opusEncoder?.Dispose();
+            // Concentus doesn't require manual disposal
             _waveIn?.Dispose();
             _waveOut?.Dispose();
             PortAudio.Terminate();
