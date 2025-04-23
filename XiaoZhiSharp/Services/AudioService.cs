@@ -20,10 +20,12 @@ namespace XiaoZhiSharp.Services
         private readonly PortAudioSharp.Stream? _waveIn;
 
         // 音频参数
-        private const int SampleRate = 24000;
+        private const int OutputSampleRate = 24000;
+        private const int InputSampleRate = 24000;
         private const int Channels = 1;
         private const int FrameDuration = 60;
-        private const int FrameSize = SampleRate * FrameDuration / 1000; // 帧大小
+        private const int InputFrameSize = InputSampleRate * FrameDuration / 1000; // 帧大小
+        private const int OutputFrameSize = OutputSampleRate * FrameDuration / 1000; // 帧大小
 
         // Opus 数据包缓存池
         private readonly Queue<byte[]> _opusRecordPackets = new Queue<byte[]>();
@@ -35,13 +37,9 @@ namespace XiaoZhiSharp.Services
         public AudioService()
         {
             // 初始化 Opus 解码器和编码器
-            //opusDecoder = new OpusDecoder(SampleRate, Channels);
-            //opusEncoder = new OpusEncoder(SampleRate, Channels, OpusApplication.OPUS_APPLICATION_VOIP);
 
-
-            // 使用 OpusCodecFactory 替代已过时的构造函数
-            opusDecoder = OpusCodecFactory.CreateDecoder(SampleRate, Channels);
-            opusEncoder = OpusCodecFactory.CreateEncoder(SampleRate, Channels, OpusApplication.OPUS_APPLICATION_VOIP);
+            opusDecoder = OpusCodecFactory.CreateDecoder(OutputSampleRate, Channels);
+            opusEncoder = OpusCodecFactory.CreateEncoder(InputSampleRate, Channels, OpusApplication.OPUS_APPLICATION_AUDIO);
 
             // 初始化音频输出组件
             PortAudio.Initialize();
@@ -62,6 +60,7 @@ namespace XiaoZhiSharp.Services
                 //Environment.Exit(1);
             }
             var outputInfo = PortAudio.GetDeviceInfo(outputDeviceIndex);
+
             var outparam = new StreamParameters
             {
                 device = outputDeviceIndex,
@@ -72,7 +71,7 @@ namespace XiaoZhiSharp.Services
             };
 
             _waveOut = new PortAudioSharp.Stream(
-                inParams: null, outParams: outparam, sampleRate: SampleRate, framesPerBuffer: 1440,
+                inParams: null, outParams: outparam, sampleRate: OutputSampleRate, framesPerBuffer: OutputFrameSize,
                 streamFlags: StreamFlags.ClipOff, callback: PlayCallback, userData: IntPtr.Zero
             );
 
@@ -94,7 +93,7 @@ namespace XiaoZhiSharp.Services
             };
 
             _waveIn = new PortAudioSharp.Stream(
-                inParams: inparam, outParams: null, sampleRate: SampleRate, framesPerBuffer: 1440,
+                inParams: inparam, outParams: null, sampleRate: InputSampleRate, framesPerBuffer: InputFrameSize,
                 streamFlags: StreamFlags.ClipOff, callback: InCallback, userData: IntPtr.Zero
             );
 
@@ -194,19 +193,19 @@ namespace XiaoZhiSharp.Services
 
         private void AddRecordSamples(byte[] buffer, int bytesRecorded)
         {
-            int frameCount = bytesRecorded / (FrameSize * 2); // 每个样本 2 字节
+            int frameCount = bytesRecorded / (InputFrameSize * 2); // 每个样本 2 字节
 
             for (int i = 0; i < frameCount; i++)
             {
-                byte[] frame = new byte[FrameSize * 2];
-                Array.Copy(buffer, i * FrameSize * 2, frame, 0, FrameSize * 2);
+                byte[] frame = new byte[InputFrameSize * 2];
+                Array.Copy(buffer, i * InputFrameSize * 2, frame, 0, InputFrameSize * 2);
 
                 // 将字节数组转换为 short 数组 (Concentus 使用 short[] 而不是 byte[])
                 short[] pcmShorts = BytesToShorts(frame);
 
                 // 编码音频帧
                 byte[] opusBytes = new byte[960];
-                int encodedLength = opusEncoder.Encode(pcmShorts, FrameSize, opusBytes, opusBytes.Length);
+                int encodedLength = opusEncoder.Encode(pcmShorts, InputFrameSize, opusBytes, opusBytes.Length);
 
                 byte[] opusPacket = new byte[encodedLength];
                 Array.Copy(opusBytes, 0, opusPacket, 0, encodedLength);
@@ -228,8 +227,8 @@ namespace XiaoZhiSharp.Services
             try
             {
                 // 解码 Opus 数据
-                short[] pcmData = new short[FrameSize * 10];
-                int decodedSamples = opusDecoder.Decode(opusData, pcmData, FrameSize * 10, false);
+                short[] pcmData = new short[OutputFrameSize * 10];
+                int decodedSamples = opusDecoder.Decode(opusData, pcmData, OutputFrameSize * 10, false);
 
                 if (decodedSamples > 0)
                 {
