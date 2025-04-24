@@ -1,10 +1,6 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
-using XiaoZhiSharp.Services;
+using System.Text.Json;
 using XiaoZhiSharp.Utils;
 
 namespace XiaoZhiSharp.Services
@@ -133,8 +129,8 @@ namespace XiaoZhiSharp.Services
                             // 解析消息
                             if (message.Contains("session_id"))
                             {
-                                dynamic? json = JsonConvert.DeserializeObject<dynamic>(message);
-                                _sessionId = (string)json.session_id;
+                                var json = JsonDocument.Parse(message);
+                                _sessionId = json.RootElement.GetProperty("session_id").GetString();
                             }
                         }
                     }

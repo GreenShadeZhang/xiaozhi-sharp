@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using System.Text.RegularExpressions;
 
 namespace XiaoZhiSharp.Utils
 {
@@ -20,7 +15,7 @@ namespace XiaoZhiSharp.Utils
     // 日志控制台类
     public class LogConsole
     {
-        public static bool IsWrite {get;set;} = true;
+        public static bool IsWrite { get; set; } = true;
         // 记录消息并换行的方法
         public static void WriteLine(MessageType type, string message)
         {

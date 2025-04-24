@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+﻿using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace XiaoZhiSharp.Services;
 
 #region 基础实现基类
@@ -104,22 +102,22 @@ public abstract class IoTDevice
 // 状态反馈
 public class StateReport
 {
-    [JsonProperty("session_id")]
+    [JsonPropertyName("session_id")]
     public string SessionId { get; set; } = "";
 
-    [JsonProperty("type")]
+    [JsonPropertyName("type")]
     public string Type { get; } = "iot";
 
-    [JsonProperty("states")]
+    [JsonPropertyName("states")]
     public List<DeviceState> States { get; set; } = new List<DeviceState>();
 }
 
 public class DeviceState
 {
-    [JsonProperty("name")]
+    [JsonPropertyName("name")]
     public string DeviceName { get; set; }
 
-    [JsonProperty("state")]
+    [JsonPropertyName("state")]
     public Dictionary<string, object> State { get; set; }
 }
 #endregion
@@ -142,7 +140,7 @@ public class Lamp : IoTDevice
     }
 
     [IoTMethod("关闭灯")]
-    public void TurnOff() 
+    public void TurnOff()
     {
         Power = false;
         Console.WriteLine("灯已闭灯");
@@ -226,7 +224,7 @@ public class IoTCommandHandler
     {
         try
         {
-            var command = JsonConvert.DeserializeObject<CommandRequest>(json);
+            var command = JsonSerializer.Deserialize<CommandRequest>(json);
             if (command == null)
             {
                 Console.WriteLine("DeserializeObject为空");
@@ -289,7 +287,7 @@ public class IoTCommandHandler
             });
         }
 
-        return JsonConvert.SerializeObject(report, Formatting.Indented);
+        return JsonSerializer.Serialize(report);
     }
 }
 

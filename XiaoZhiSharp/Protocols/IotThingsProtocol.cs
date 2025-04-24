@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace XiaoZhiSharp.Protocols
+﻿namespace XiaoZhiSharp.Protocols
 {
     public class IotThingsProtocol : IotThings
     {
@@ -18,7 +12,8 @@ namespace XiaoZhiSharp.Protocols
         public string session_id { get; set; } = "";
     }
 
-    public class IotThingsDescriptor {
+    public class IotThingsDescriptor
+    {
         // lamp
         public string name { get; set; } = "";
         // 一个可控制开关、亮度和颜色的智能灯
@@ -27,7 +22,8 @@ namespace XiaoZhiSharp.Protocols
         public List<IotThingsMethods> methods { get; set; } = new List<IotThingsMethods>();
     }
 
-    public class IotThingsPropertie {
+    public class IotThingsPropertie
+    {
         // power
         public string key { get; set; } = "";
         // 智能灯的power属性
@@ -36,7 +32,8 @@ namespace XiaoZhiSharp.Protocols
         public string type { get; set; } = "";
     }
 
-    public class IotThingsMethods {
+    public class IotThingsMethods
+    {
         // turn_on
         public string key { get; set; } = "";
         // 打开设备

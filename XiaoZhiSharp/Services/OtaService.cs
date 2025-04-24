@@ -1,65 +1,70 @@
-﻿using Newtonsoft.Json;
-using RestSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Schema;
+﻿using System.Text;
+using System.Text.Json;
 using XiaoZhiSharp.Utils;
 
 namespace XiaoZhiSharp.Services
 {
-    public class OtaService
+    public class OtaService : IDisposable
     {
+        private readonly HttpClient _httpClient;
+        private readonly CancellationTokenSource _cts = new();
+        private bool _disposed = false;
+
         public string? OTA_VERSION_URL { get; set; } = "https://api.tenclass.net/xiaozhi/ota/";
-        public dynamic? OTA_INFO { get; set; }
+        public JsonDocument? OTA_INFO { get; set; }
         public string? MAC_ADDR { get; set; }
 
-        public OtaService(string url,string mac)
+        public OtaService(string url, string mac)
         {
             OTA_VERSION_URL = url;
             MAC_ADDR = mac;
-            if(string.IsNullOrEmpty(MAC_ADDR))
+            if (string.IsNullOrEmpty(MAC_ADDR))
                 MAC_ADDR = SystemInfo.GetMacAddress();
 
-            Thread _otaThread = new Thread(() =>
+            _httpClient = new HttpClient();
+
+            // 启动后台线程定期检查OTA信息
+            Thread _otaThread = new Thread(async () =>
             {
-                while (true)
+                while (!_cts.Token.IsCancellationRequested)
                 {
                     try
                     {
-                        GetOtaInfo();
+                        await GetOtaInfoAsync();
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e.Message);
                     }
-                    Thread.Sleep(1000 * 60);
+
+                    try
+                    {
+                        await Task.Delay(1000 * 60, _cts.Token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
                 }
             });
+            _otaThread.IsBackground = true;
             _otaThread.Start();
         }
 
         /// <summary>
         /// 获取配置
         /// </summary>
-        private void GetOtaInfo()
+        private async Task GetOtaInfoAsync()
         {
             try
             {
-                var client = new RestClient(OTA_VERSION_URL);
-                var request = new RestRequest();
-                request.AddHeader("Device-Id", MAC_ADDR);
-                request.AddHeader("Content-Type", "application/json");
+                // 设置请求头
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add("Device-Id", MAC_ADDR);
 
-                DateTime currentUtcTime = DateTime.UtcNow;
-                string format = "MMM dd yyyyT HH:mm:ssZ";
-                string formattedTime = currentUtcTime.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
-
+                // 准备请求数据
                 var postData = new
                 {
-
                     application = new
                     {
                         name = "XiaoZhiSharp",
@@ -67,26 +72,65 @@ namespace XiaoZhiSharp.Services
                     }
                 };
 
-                request.AddJsonBody(postData);
+                // 发送POST请求
+                var content = new StringContent(
+                    JsonSerializer.Serialize(postData),
+                    Encoding.UTF8,
+                    "application/json");
 
-                var response = client.Post(request);
-                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                var response = await _httpClient.PostAsync(OTA_VERSION_URL, content);
+
+                if (!response.IsSuccessStatusCode)
                 {
                     Console.WriteLine("获取OTA版本信息失败!");
+                    return;
                 }
-                if (response.Content != null && response.Content != "")
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(responseContent))
                 {
-                    OTA_INFO = JsonConvert.DeserializeObject<dynamic>(response.Content);
-                    if (OTA_INFO != null && OTA_INFO.activation != null)
+                    try
                     {
-                        Console.WriteLine($"请先登录xiaozhi.me,绑定Code：{(string)OTA_INFO.activation.code}");
+                        OTA_INFO = JsonDocument.Parse(responseContent);
+
+                        // 使用TryGetProperty进行安全的属性访问
+                        if (OTA_INFO.RootElement.TryGetProperty("activation", out var activationProperty) &&
+                            activationProperty.TryGetProperty("code", out var codeProperty))
+                        {
+                            string activationCode = codeProperty.GetString() ?? "未知";
+                            Console.WriteLine($"请先登录xiaozhi.me,绑定Code：{activationCode}");
+                        }
                     }
-                    //Console.WriteLine(response.Content);
+                    catch (JsonException ex)
+                    {
+                        Console.WriteLine($"解析OTA响应时出错: {ex.Message}");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"获取OTA版本信息时发生异常: {ex.Message}");
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _cts.Cancel();
+                    _cts.Dispose();
+                    _httpClient.Dispose();
+                }
+
+                _disposed = true;
             }
         }
     }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using XiaoZhiSharp.Services;
+﻿using XiaoZhiSharp.Services;
 using XiaoZhiSharp.Utils;
 
 namespace XiaoZhiSharp
@@ -45,7 +39,7 @@ namespace XiaoZhiSharp
         {
             //if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             //{
-            if(IsAudio)
+            if (IsAudio)
                 _audioService = new AudioService();
             //}
             if (IsOTA)
@@ -79,12 +73,14 @@ namespace XiaoZhiSharp
             _sendOpusthread.Start();
         }
 
-        public void Stop() {
+        public void Stop()
+        {
             _audioService = null;
             _otaService = null;
             _webSocketService = null;
         }
-        public void Restart() {
+        public void Restart()
+        {
             Stop();
             Start();
         }
@@ -103,7 +99,8 @@ namespace XiaoZhiSharp
                 OnMessageEvent(message);
         }
 
-        public async Task SendMessage(string message) {
+        public async Task SendMessage(string message)
+        {
             await Send_Listen_Detect(message);
         }
 
@@ -120,13 +117,13 @@ namespace XiaoZhiSharp
         #region 协议
         public async Task Send_Hello()
         {
-            if(_webSocketService!=null)
+            if (_webSocketService != null)
                 await _webSocketService.SendMessageAsync(Protocols.WebSocketProtocol.Hello());
         }
 
-        public async Task IotInit(string iotjson) 
+        public async Task IotInit(string iotjson)
         {
-            if (_webSocketService != null && _audioService != null) 
+            if (_webSocketService != null && _audioService != null)
             {
                 //Console.WriteLine("生成的设备描述JSON：\n" + iotjson);
                 await _webSocketService.SendMessageAsync(iotjson);
@@ -148,7 +145,7 @@ namespace XiaoZhiSharp
         }
         public async Task Send_Listen_Start(string mode)
         {
-            if (_webSocketService != null && _audioService!=null)
+            if (_webSocketService != null && _audioService != null)
             {
                 await _webSocketService.SendMessageAsync(Protocols.WebSocketProtocol.Listen_Start(_webSocketService.SessionId, mode));
                 _audioService.StartRecording();

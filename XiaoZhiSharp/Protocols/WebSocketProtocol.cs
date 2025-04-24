@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace XiaoZhiSharp.Protocols
+﻿namespace XiaoZhiSharp.Protocols
 {
     /// <summary>
     /// 
@@ -18,7 +12,7 @@ namespace XiaoZhiSharp.Protocols
         // Client-Id: <设备UUID>
 
         // 2. 连接成功后,客户端发送hello消息:
-        public static string Hello(string sessionId="")
+        public static string Hello(string sessionId = "")
         {
             string message = @"{
                 ""type"": ""hello"",
@@ -32,8 +26,8 @@ namespace XiaoZhiSharp.Protocols
                     },
                 ""session_id"":""<会话ID>""
             }";
-            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ","");
-            if(string.IsNullOrEmpty(sessionId))
+            message = message.Replace("\n", "").Replace("\r", "").Replace("\r\n", "").Replace(" ", "");
+            if (string.IsNullOrEmpty(sessionId))
                 message = message.Replace(",\"session_id\":\"<会话ID>\"", "");
             else
                 message = message.Replace("<会话ID>", sessionId);
@@ -122,7 +116,7 @@ namespace XiaoZhiSharp.Protocols
         // "start": 开始播放
         // "stop": 停止播放  
         // "sentence_start": 新句子开始
-        public static string TTS_Sentence_Start(string text,string? sessionId="")
+        public static string TTS_Sentence_Start(string text, string? sessionId = "")
         {
             string message = @"{
                     ""type"": ""tts"",
@@ -140,7 +134,7 @@ namespace XiaoZhiSharp.Protocols
             return message;
         }
 
-        public static string TTS_Sentence_End(string text="", string? sessionId = "")
+        public static string TTS_Sentence_End(string text = "", string? sessionId = "")
         {
             string message = @"{
                     ""type"": ""tts"",

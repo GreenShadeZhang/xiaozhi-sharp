@@ -15,8 +15,8 @@ namespace XiaoZhiSharp.Services
 
         // 音频输出相关组件
         private PortAudioSharp.Stream? _waveOut;
-        private readonly ConcurrentQueue<float[]> _waveOutStream = new ConcurrentQueue<float[]>();
-        private readonly object _waveOutLock = new object(); // 新增锁对象
+        private readonly ConcurrentQueue<float[]> _waveOutStream = new();
+        private readonly object _waveOutLock = new(); // 新增锁对象
 
         // 音频输入相关组件
         private PortAudioSharp.Stream? _waveIn;
@@ -30,8 +30,8 @@ namespace XiaoZhiSharp.Services
         private const int OutputFrameSize = (int)(OutputSampleRate * (FrameDuration / 1000.0)); // 帧大小
 
         // Opus 数据包缓存池
-        private readonly ConcurrentQueue<byte[]> _opusRecordPackets = new ConcurrentQueue<byte[]>();
-        private readonly ConcurrentQueue<byte[]> _opusPlayPackets = new ConcurrentQueue<byte[]>();
+        private readonly ConcurrentQueue<byte[]> _opusRecordPackets = new();
+        private readonly ConcurrentQueue<byte[]> _opusPlayPackets = new();
 
         // 批量解码和播放参数
         private const int MaxBatchSize = 10; // 最大批量处理大小
