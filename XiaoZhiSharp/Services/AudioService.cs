@@ -23,10 +23,10 @@ namespace XiaoZhiSharp.Services
 
         // 音频参数
         private const int OutputSampleRate = 24000;
-        private const int InputSampleRate = 24000;
+        private const int InputSampleRate = 16000;
         private const int Channels = 1;
         private const int FrameDuration = 120;
-        private const int InputFrameSize = (int)(InputSampleRate * (FrameDuration / 1000.0)); // 帧大小
+        private const int InputFrameSize = (int)(InputSampleRate * (60 / 1000.0)); // 帧大小
         private const int OutputFrameSize = (int)(OutputSampleRate * (FrameDuration / 1000.0)); // 帧大小
 
         // Opus 数据包缓存池
@@ -330,7 +330,7 @@ namespace XiaoZhiSharp.Services
                 short[] pcmShorts = BytesToShorts(frame);
 
                 // 编码音频帧
-                byte[] opusBytes = new byte[960];
+                byte[] opusBytes = new byte[1275];
                 int encodedLength = opusEncoder.Encode(pcmShorts, InputFrameSize, opusBytes, opusBytes.Length);
 
                 byte[] opusPacket = new byte[encodedLength];
