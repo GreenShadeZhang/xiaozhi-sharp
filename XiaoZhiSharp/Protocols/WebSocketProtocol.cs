@@ -28,7 +28,7 @@ namespace XiaoZhiSharp.Protocols
                     ""format"": ""opus"",
                     ""sample_rate"": 24000,
                     ""channels"": 1,
-                    ""frame_duration"": 60
+                    ""frame_duration"": 120
                     },
                 ""session_id"":""<会话ID>""
             }";

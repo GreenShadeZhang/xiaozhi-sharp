@@ -14,20 +14,20 @@ namespace XiaoZhiSharp.Services
         private readonly IOpusEncoder opusEncoder;   // 编码器
 
         // 音频输出相关组件
-        private  PortAudioSharp.Stream? _waveOut;
+        private PortAudioSharp.Stream? _waveOut;
         private readonly ConcurrentQueue<float[]> _waveOutStream = new ConcurrentQueue<float[]>();
         private readonly object _waveOutLock = new object(); // 新增锁对象
 
         // 音频输入相关组件
-        private  PortAudioSharp.Stream? _waveIn;
+        private PortAudioSharp.Stream? _waveIn;
 
         // 音频参数
         private const int OutputSampleRate = 24000;
         private const int InputSampleRate = 24000;
         private const int Channels = 1;
-        private const int FrameDuration = 60;
-        private const int InputFrameSize = InputSampleRate * FrameDuration / 1000; // 帧大小
-        private const int OutputFrameSize = OutputSampleRate * FrameDuration / 1000; // 帧大小
+        private const int FrameDuration = 120;
+        private const int InputFrameSize = (int)(InputSampleRate * (FrameDuration / 1000.0)); // 帧大小
+        private const int OutputFrameSize = (int)(OutputSampleRate * (FrameDuration / 1000.0)); // 帧大小
 
         // Opus 数据包缓存池
         private readonly ConcurrentQueue<byte[]> _opusRecordPackets = new ConcurrentQueue<byte[]>();
